@@ -9,7 +9,7 @@ use std::net::TcpStream;
 use std::str::from_utf8;
 
 fn main() {
-    let listener = TcpListener::bind("127.0.0.1:7878").unwrap();
+    let listener = TcpListener::bind("127.0.0.1:7878").expect("Couldn't bind to 127.0.0.1:7878");
 
     for stream in listener.incoming() {
         let stream = stream.unwrap();
@@ -19,7 +19,12 @@ fn main() {
 
 fn handle_connection(mut stream: TcpStream) {
     let mut buffer = [0; 512];
-    stream.read(&mut buffer).unwrap();
+    match stream.read(&mut buffer) {
+        Ok(_) => {}
+        Err(e) => {
+            println!("Error when reading request: {}", e);
+        }
+    }
     // This is done in order not to compile the regex pattern on every call of handle_connection
     lazy_static! {
         static ref RE: Regex = Regex::new(r"Host: (?P<host>[0-9a-zA-Z\-\.:]+)").unwrap();
@@ -30,7 +35,7 @@ fn handle_connection(mut stream: TcpStream) {
         host.push_str(":80");
     }
 
-    match TcpStream::connect(host) {
+    match TcpStream::connect(&host) {
         Ok(mut server_stream) => {
             server_stream.write_all(&buffer).unwrap();
             let mut data = [0 as u8; 64000];
@@ -44,7 +49,7 @@ fn handle_connection(mut stream: TcpStream) {
             }
         }
         Err(e) => {
-            println!("Failed to connect: {}", e);
+            println!("Failed to connect to {}: {}", &host, e);
         }
     }
 

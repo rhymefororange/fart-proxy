@@ -1,7 +1,9 @@
+extern crate clap;
 #[macro_use]
 extern crate lazy_static;
 extern crate regex;
 
+use clap::{App, Arg};
 use regex::Regex;
 use std::io::{Read, Write};
 use std::net::TcpListener;
@@ -9,7 +11,22 @@ use std::net::TcpStream;
 use std::str::from_utf8;
 
 fn main() {
-    let listener = TcpListener::bind("127.0.0.1:7878").expect("Couldn't bind to 127.0.0.1:7878");
+    let matches = App::new("Fart Proxy")
+        .version("0.1.0")
+        .author("Pavlo Hlushchenko <pavlo.hlushchenko@gmail.com>")
+        .about("Burp-like proxy")
+        .arg(
+            Arg::with_name("listen")
+                .short("l")
+                .long("listen")
+                .value_name("ADDRESS")
+                .help("Sets a custom address and port to listen on")
+                .takes_value(true)
+                .default_value("127.0.0.1:7878"),
+        )
+        .get_matches();
+    let address = matches.value_of("listen").unwrap();
+    let listener = TcpListener::bind(address).expect(&format!("Couldn't bind to {}", address));
 
     for stream in listener.incoming() {
         let stream = stream.unwrap();

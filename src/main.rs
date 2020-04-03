@@ -1,9 +1,8 @@
-extern crate clap;
 #[macro_use]
 extern crate lazy_static;
-extern crate regex;
 
 use clap::{App, Arg};
+use ctrlc;
 use regex::Regex;
 use std::io::{Read, Write};
 use std::net::TcpListener;
@@ -11,6 +10,11 @@ use std::net::TcpStream;
 use std::str::from_utf8;
 
 fn main() {
+    ctrlc::set_handler(move || {
+        println!("received Ctrl+C, quitting!");
+        std::process::exit(1);
+    })
+    .expect("Error setting Ctrl-C handler");
     let matches = App::new("Fart Proxy")
         .version("0.1.0")
         .author("Pavlo Hlushchenko <pavlo.hlushchenko@gmail.com>")
@@ -26,11 +30,14 @@ fn main() {
         )
         .get_matches();
     let address = matches.value_of("listen").unwrap();
-    let listener = TcpListener::bind(address).expect(&format!("Couldn't bind to {}", address));
-
-    for stream in listener.incoming() {
-        let stream = stream.unwrap();
-        handle_connection(stream);
+    match TcpListener::bind(address) {
+        Ok(listener) => {
+            for stream in listener.incoming() {
+                let stream = stream.unwrap();
+                handle_connection(stream);
+            }
+        }
+        Err(e) => println!("Could not bind to address {}: {}", address, e),
     }
 }
 
